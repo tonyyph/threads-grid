@@ -1,6 +1,6 @@
 # threads-grid — AI skill
 
-An agent skill that scaffolds a **real visual editor** for connected multi-post social grids (Threads, Instagram carousels, 3×3 profile puzzles, story sequences, Facebook/Zalo posts). Inspired by the structure of [`ParthJadhav/app-store-screenshots`](https://github.com/ParthJadhav/app-store-screenshots): an editor, a JSON project file, and an export bundle. Here the domain is social content instead of App Store screenshots.
+An agent skill that scaffolds a **real visual editor** for connected multi-post social grids (Threads, Instagram carousels, 3×3 profile puzzles, story sequences, Facebook/Zalo posts).
 
 ## What the agent produces
 

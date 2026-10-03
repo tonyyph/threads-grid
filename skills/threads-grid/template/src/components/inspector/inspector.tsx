@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, Copy, Eye, EyeOff, Lock, Trash2, Unlock } from "lucide-react";
+import { AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalSpaceAround, AlignStartHorizontal, AlignStartVertical, AlignVerticalSpaceAround, ArrowDown, ArrowUp, ChevronsDown, ChevronsUp, Copy, Eye, EyeOff, Lock, Trash2, Unlock } from "lucide-react";
 import type { ReactNode } from "react";
-import { BLEND_MODES, FONT_OPTIONS } from "@/lib/constants";
+import { BLEND_MODES, FONT_OPTIONS, allFontOptions } from "@/lib/constants";
 import { postsTouchedBy, resolveColor } from "@/lib/geometry";
-import { useEditor, useProject } from "@/lib/store";
+import { useEditor, useProject, type AlignMode } from "@/lib/store";
 import type { BlendMode, GridElement, Project } from "@/lib/types";
 import { Button, ColorInput, Field, NumberInput, Section, Select, Slider, TextInput, Toggle } from "../ui/controls";
 
@@ -15,11 +15,12 @@ import { Button, ColorInput, Field, NumberInput, Section, Select, Slider, TextIn
 export function Inspector() {
   const project = useProject();
   const selectedId = useEditor((s) => s.selectedId);
+  const count = useEditor((s) => s.selectedIds.length);
   const checkpoint = useEditor((s) => s.checkpoint);
   const el = project.elements.find((e) => e.id === selectedId);
   return (
     <aside className="flex w-80 shrink-0 flex-col overflow-y-auto border-l border-zinc-800 bg-zinc-900/60" onPointerDownCapture={checkpoint} onFocusCapture={checkpoint}>
-      {el ? <ElementInspector el={el} project={project} /> : <CanvasInspector project={project} />}
+      {count > 1 ? <MultiInspector count={count} /> : el ? <ElementInspector el={el} project={project} /> : <CanvasInspector project={project} />}
     </aside>
   );
 }
@@ -134,7 +135,7 @@ function ElementInspector({ el, project }: { el: GridElement; project: Project }
               options={[
                 { value: "heading", label: `Brand heading (${fontLabel(project.brand.fonts.heading)})` },
                 { value: "body", label: `Brand body (${fontLabel(project.brand.fonts.body)})` },
-                ...FONT_OPTIONS.map((f) => ({ value: f.id, label: f.label })),
+                ...allFontOptions(project.brand).map((f) => ({ value: f.id, label: f.label })),
               ]}
             />
           </Field>
@@ -243,7 +244,10 @@ function TypeSpecific({ el, setAny, color }: { el: GridElement; setAny: (p: Reco
               <Select value={el.frame} onChange={(v) => setAny({ frame: v })} options={["none", "phone", "browser"].map((x) => ({ value: x, label: x }))} />
             </Field>
           </div>
-          {el.fit === "cover" ? (
+          <Field label="Crop zoom">
+            <Slider value={el.zoom} min={1} max={5} step={0.05} onChange={(v) => setAny({ zoom: v })} />
+          </Field>
+          {el.fit === "cover" || el.zoom > 1 ? (
             <>
               <Field label="Crop focus X">
                 <Slider value={el.focusX} min={0} max={100} onChange={(v) => setAny({ focusX: v })} />
@@ -333,6 +337,65 @@ function fontLabel(id: string) {
   return FONT_OPTIONS.find((f) => f.id === id)?.label ?? id;
 }
 
+const ALIGN: { mode: AlignMode; icon: ReactNode; label: string }[] = [
+  { mode: "left", icon: <AlignStartVertical size={15} />, label: "Align left" },
+  { mode: "hcenter", icon: <AlignCenterVertical size={15} />, label: "Align horizontal centers" },
+  { mode: "right", icon: <AlignEndVertical size={15} />, label: "Align right" },
+  { mode: "top", icon: <AlignStartHorizontal size={15} />, label: "Align top" },
+  { mode: "vcenter", icon: <AlignCenterHorizontal size={15} />, label: "Align vertical centers" },
+  { mode: "bottom", icon: <AlignEndHorizontal size={15} />, label: "Align bottom" },
+];
+
+function MultiInspector({ count }: { count: number }) {
+  const align = useEditor((s) => s.alignSelected);
+  const distribute = useEditor((s) => s.distributeSelected);
+  const duplicate = useEditor((s) => s.duplicateSelected);
+  const remove = useEditor((s) => s.removeSelected);
+  const select = useEditor((s) => s.select);
+  return (
+    <>
+      <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-zinc-500">Selection</div>
+          <div className="text-sm font-medium text-white">{count} elements</div>
+        </div>
+        <div className="flex gap-0.5">
+          <Button size="icon" variant="ghost" title="Duplicate (⌘D)" onClick={duplicate}>
+            <Copy size={14} />
+          </Button>
+          <Button size="icon" variant="ghost" title="Delete (⌫)" onClick={remove}>
+            <Trash2 size={14} />
+          </Button>
+        </div>
+      </div>
+      {(["selection", "post"] as const).map((to) => (
+        <Section key={to} title={to === "selection" ? "Align to selection" : "Align to post safe area"}>
+          <div className="flex gap-1">
+            {ALIGN.map((a) => (
+              <Button key={a.mode} size="icon" variant="secondary" title={a.label} onClick={() => align(a.mode, to)}>
+                {a.icon}
+              </Button>
+            ))}
+          </div>
+        </Section>
+      ))}
+      <Section title="Distribute (3+)">
+        <div className="flex gap-1">
+          <Button size="sm" variant="secondary" disabled={count < 3} onClick={() => distribute("x")}>
+            <AlignHorizontalSpaceAround size={14} /> Horizontal
+          </Button>
+          <Button size="sm" variant="secondary" disabled={count < 3} onClick={() => distribute("y")}>
+            <AlignVerticalSpaceAround size={14} /> Vertical
+          </Button>
+        </div>
+      </Section>
+      <p className="px-4 py-3 text-[11px] leading-relaxed text-zinc-500">
+        Drag any selected element to move the group. Arrows nudge (⇧ = 10px). Shift/⌘-click toggles, drag on empty canvas to marquee-select, ⌘A selects all. <button className="text-sky-400" onClick={() => select(null)}>Clear</button>
+      </p>
+    </>
+  );
+}
+
 function CanvasInspector({ project }: { project: Project }) {
   const setProject = useEditor((s) => s.setProject);
   const select = useEditor((s) => s.select);
@@ -381,7 +444,7 @@ function CanvasInspector({ project }: { project: Project }) {
       <Section title={`Layers (${project.elements.length})`}>
         <div className="space-y-0.5">
           {[...project.elements].reverse().map((e) => (
-            <button key={e.id} onClick={() => select(e.id)} className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-zinc-300 hover:bg-zinc-800">
+            <button key={e.id} onClick={(ev) => select(e.id, { additive: ev.shiftKey || ev.metaKey })} className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-xs text-zinc-300 hover:bg-zinc-800">
               <span className="w-14 shrink-0 text-[10px] uppercase text-zinc-500">{e.type}</span>
               <span className={`truncate ${e.hidden ? "opacity-40" : ""}`}>{e.name || ("text" in e ? e.text.slice(0, 32) : e.id)}</span>
               {e.locked ? <Lock size={11} className="ml-auto shrink-0 text-zinc-500" /> : null}

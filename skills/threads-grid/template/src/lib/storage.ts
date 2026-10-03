@@ -35,7 +35,7 @@ export async function saveProjectToServer(p: Project): Promise<void> {
   if (!res.ok) throw new Error(`Save failed: ${res.status}`);
 }
 
-export async function uploadAsset(file: File): Promise<{ path: string; name: string }> {
+export async function uploadAsset(file: File): Promise<{ path: string; name: string; kind?: "image" | "font" }> {
   const form = new FormData();
   form.append("file", file);
   const res = await fetch("/api/upload", { method: "POST", body: form });

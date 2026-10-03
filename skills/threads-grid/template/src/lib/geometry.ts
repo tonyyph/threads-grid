@@ -51,11 +51,36 @@ export function resolveColor(value: string, brand: Brand): string {
 export function resolveFont(value: string, brand: Brand): string {
   const id = value === "heading" ? brand.fonts.heading : value === "body" ? brand.fonts.body : value;
   const f = FONT_OPTIONS.find((o) => o.id === id);
-  if (!f) return value; // allow raw CSS family names
+  if (!f) {
+    const custom = brand.customFonts.find((c) => c.id === id);
+    if (custom) return `"${customFontFamily(custom.id)}", system-ui, sans-serif`;
+    return value; // allow raw CSS family names
+  }
   const fallback = f.kind === "serif" ? "Georgia, serif" : f.kind === "mono" ? "ui-monospace, monospace" : "system-ui, sans-serif";
   return `var(${f.cssVar}), ${fallback}`;
 }
 
 export function uid(prefix = "el"): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function customFontFamily(id: string) {
+  return `tg-${id}`;
+}
+
+/** Axis-aligned bounding box of a rotated element (rotation around its center). */
+export function rotatedBounds(el: { x: number; y: number; w: number; h: number; rotation: number }) {
+  if (!el.rotation) return { x: el.x, y: el.y, w: el.w, h: el.h };
+  const r = (el.rotation * Math.PI) / 180;
+  const w = Math.abs(el.w * Math.cos(r)) + Math.abs(el.h * Math.sin(r));
+  const h = Math.abs(el.w * Math.sin(r)) + Math.abs(el.h * Math.cos(r));
+  return { x: el.x + (el.w - w) / 2, y: el.y + (el.h - h) / 2, w, h };
+}
+
+/** Post index that fully contains the element's (rotated) bounds, or -1 if it spans/leaves posts. */
+export function containingPost(p: Project, el: { x: number; y: number; w: number; h: number; rotation: number }): number {
+  const b = rotatedBounds(el);
+  const eps = 0.5;
+  const r = postRects(p).find((r) => b.x >= r.x - eps && b.y >= r.y - eps && b.x + b.w <= r.x + r.w + eps && b.y + b.h <= r.y + r.h + eps);
+  return r ? r.index : -1;
 }

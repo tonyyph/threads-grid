@@ -78,6 +78,8 @@ export const ImageElementSchema = z.object({
   fit: z.enum(["cover", "contain", "fill"]).default("cover"),
   focusX: z.number().min(0).max(100).default(50),
   focusY: z.number().min(0).max(100).default(50),
+  /** Crop zoom (1 = no zoom). Scales the image inside its box around the focus point. */
+  zoom: z.number().min(1).max(5).default(1),
   mask: z.enum(["none", "circle", "arch", "rounded", "pill"]).default("none"),
   /** Optional device frame around screenshots. */
   frame: z.enum(["none", "phone", "browser"]).default("none"),
@@ -182,6 +184,20 @@ export const BrandSchema = z.object({
       body: z.string().default("inter"),
     })
     .prefault({}),
+  /** Uploaded font files (public/uploads/fonts/...). Usable anywhere a font id is accepted. */
+  customFonts: z
+    .array(
+      z.object({
+        id: z.string(),
+        label: z.string(),
+        path: z.string(),
+        weight: z.string().default("100 900"),
+        style: z.enum(["normal", "italic"]).default("normal"),
+        /** Set on upload by a glyph check; false = Vietnamese diacritics will fall back to another font. */
+        vietnamese: z.boolean().optional(),
+      }),
+    )
+    .default([]),
 });
 
 export const BackgroundSchema = z.object({
@@ -255,6 +271,11 @@ export const ProjectSchema = z.object({
       includeProjectJson: z.boolean().default(true),
       /** "reading": 01 = top-left. "posting": 01 = first to publish (reversed for profile grids). */
       order: z.enum(["reading", "posting"]).default("reading"),
+      format: z.enum(["png", "jpeg", "webp"]).default("png"),
+      /** 0–1, used for jpeg/webp. */
+      quality: z.number().min(0.1).max(1).default(0.95),
+      /** 1 = exact platform size. 2/3 = @2x/@3x for crisp masters (platforms downscale). */
+      scale: z.number().int().min(1).max(3).default(1),
       previewMaxSize: z.number().int().default(3000),
     })
     .prefault({}),

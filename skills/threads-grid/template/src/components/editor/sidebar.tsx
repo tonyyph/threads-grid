@@ -1,14 +1,17 @@
 "use client";
 
-import { Circle, Image as ImageIcon, Minus, MousePointerClick, Quote, Square, SquareStack, Type, Upload, Hash, Sparkles } from "lucide-react";
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Circle, GripVertical, Image as ImageIcon, Minus, MousePointerClick, Quote, Square, SquareStack, Type, Upload, Hash, Sparkles, X } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
-import { BRAND_COLOR_KEYS, FONT_OPTIONS, LAYOUT_MODES, PLATFORM_PRESETS, STYLE_PRESETS } from "@/lib/constants";
+import { BRAND_COLOR_KEYS, LAYOUT_MODES, PLATFORM_PRESETS, STYLE_PRESETS, allFontOptions } from "@/lib/constants";
 import { applyLayout, applyPreset, applyStyle } from "@/lib/defaults";
-import { canvasSize } from "@/lib/geometry";
+import { canvasSize, customFontFamily } from "@/lib/geometry";
 import { uploadAsset } from "@/lib/storage";
 import { useEditor, useProject } from "@/lib/store";
 import { LAYOUT_TEMPLATES, buildTemplate, type LayoutTemplateId } from "@/lib/templates";
-import type { ElementType, LayoutMode, PlatformPreset, Project } from "@/lib/types";
+import type { CopyPost, ElementType, LayoutMode, PlatformPreset, Project } from "@/lib/types";
 import { Button, ColorInput, Field, NumberInput, Section, Select, TextInput, Toggle, cn } from "../ui/controls";
 
 type Tab = "design" | "brand" | "posts";
@@ -171,7 +174,49 @@ function DesignTab() {
           </Field>
         </div>
       </Section>
+
+      <ExportSettings />
     </>
+  );
+}
+
+function ExportSettings() {
+  const project = useProject();
+  const setProject = useEditor((s) => s.setProject);
+  const ex = project.export;
+  const setEx = (patch: Partial<Project["export"]>) => setProject((p) => ({ ...p, export: { ...p.export, ...patch } }));
+  return (
+    <Section title="Export">
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="Format">
+          <Select value={ex.format} onChange={(v) => setEx({ format: v })} options={[{ value: "png", label: "PNG (lossless)" }, { value: "jpeg", label: "JPG" }, { value: "webp", label: "WebP" }]} />
+        </Field>
+        <Field label="Scale">
+          <Select value={String(ex.scale)} onChange={(v) => setEx({ scale: Number(v) })} options={[1, 2, 3].map((n) => ({ value: String(n), label: n === 1 ? "1× (exact)" : `${n}× master` }))} />
+        </Field>
+        {ex.format !== "png" ? (
+          <Field label="Quality">
+            <NumberInput value={Math.round(ex.quality * 100)} min={10} max={100} onChange={(v) => setEx({ quality: v / 100 })} suffix="%" />
+          </Field>
+        ) : null}
+        <Field label="File name" className={ex.format !== "png" ? "" : "col-span-2"}>
+          <TextInput value={ex.fileBase} onChange={(v) => setEx({ fileBase: v.replace(/[^\w.-]+/g, "-") || "threads-grid" })} />
+        </Field>
+      </div>
+      <Select
+        value={ex.order}
+        onChange={(v) => setEx({ order: v })}
+        options={[
+          { value: "reading", label: "Numbering: reading order (01 = top-left)" },
+          { value: "posting", label: "Numbering: posting order (profile grids)" },
+        ]}
+      />
+      <Toggle label="Include stitched preview" checked={ex.includePreview} onChange={(v) => setEx({ includePreview: v })} />
+      <Toggle label="Include project JSON" checked={ex.includeProjectJson} onChange={(v) => setEx({ includeProjectJson: v })} />
+      <p className="text-[11px] text-zinc-500">
+        Output: {ex.fileBase}-01.{ex.format === "jpeg" ? "jpg" : ex.format} … at {project.post.width * ex.scale}×{project.post.height * ex.scale}px
+      </p>
+    </Section>
   );
 }
 
@@ -181,6 +226,7 @@ function BrandTab() {
   const [busy, setBusy] = useState(false);
   const logoInput = useRef<HTMLInputElement>(null);
   const assetInput = useRef<HTMLInputElement>(null);
+  const fontInput = useRef<HTMLInputElement>(null);
   const [assetRole, setAssetRole] = useState("product");
   const setBrand = (patch: Partial<Project["brand"]>) => setProject((p) => ({ ...p, brand: { ...p.brand, ...patch } }), { record: false });
 
@@ -195,6 +241,27 @@ function BrandTab() {
           brand: role === "logo" ? { ...p.brand, logo: up.path } : p.brand,
           assets: p.assets.some((a) => a.path === up.path) ? p.assets : [...p.assets, { id: up.path, path: up.path, name: up.name, role }],
         }));
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const uploadFonts = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setBusy(true);
+    try {
+      for (const f of Array.from(files)) {
+        const up = await uploadAsset(f);
+        const label = f.name.replace(/\.(ttf|otf|woff2?)$/i, "").replace(/[-_]+/g, " ");
+        const id = `custom-${up.path.split("/").pop()!.split(".")[0].slice(0, 8)}`;
+        const italic = /italic/i.test(f.name);
+        const vietnamese = await coversVietnamese(up.path);
+        setProject((p) =>
+          p.brand.customFonts.some((c) => c.id === id)
+            ? p
+            : { ...p, brand: { ...p.brand, customFonts: [...p.brand.customFonts, { id, label, path: up.path, weight: "100 900", style: italic ? "italic" : "normal", vietnamese }] } },
+        );
       }
     } finally {
       setBusy(false);
@@ -230,10 +297,33 @@ function BrandTab() {
       <Section title="Brand fonts">
         {(["heading", "body"] as const).map((k) => (
           <Field key={k} label={k}>
-            <Select value={project.brand.fonts[k]} onChange={(v) => setBrand({ fonts: { ...project.brand.fonts, [k]: v } })} options={FONT_OPTIONS.map((f) => ({ value: f.id, label: f.label }))} />
+            <Select value={project.brand.fonts[k]} onChange={(v) => setBrand({ fonts: { ...project.brand.fonts, [k]: v } })} options={allFontOptions(project.brand).map((f) => ({ value: f.id, label: f.label }))} />
           </Field>
         ))}
-        <p className="text-[11px] text-zinc-500">All bundled fonts include full Vietnamese glyphs.</p>
+        <p className="text-[11px] text-zinc-500">All bundled fonts include full Vietnamese glyphs. Uploaded fonts must contain them too.</p>
+        <Button size="sm" className="w-full" onClick={() => fontInput.current?.click()} disabled={busy}>
+          <Upload size={13} /> Upload brand font (.ttf .otf .woff .woff2)
+        </Button>
+        <input ref={fontInput} type="file" accept=".ttf,.otf,.woff,.woff2" multiple hidden onChange={(e) => uploadFonts(e.target.files)} />
+        {project.brand.customFonts.map((f) => (
+          <div key={f.id} className="flex items-center gap-2 rounded border border-zinc-800 px-2 py-1">
+            <span className="flex-1 truncate text-sm" style={{ fontFamily: `"${customFontFamily(f.id)}"` }}>
+              {f.label} — Tinh hoa Việt
+            </span>
+            {f.vietnamese === false ? (
+              <span title="This font is missing Vietnamese glyphs (ầ ữ ợ đ…). They will render in a fallback font." className="rounded bg-amber-500/15 px-1 text-[10px] text-amber-300">
+                no VI
+              </span>
+            ) : null}
+            <button
+              title="Remove font"
+              className="text-zinc-500 hover:text-red-300"
+              onClick={() => setProject((p) => ({ ...p, brand: { ...p.brand, customFonts: p.brand.customFonts.filter((c) => c.id !== f.id) } }))}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        ))}
       </Section>
 
       <Section title={`Assets (${project.assets.length})`}>
@@ -277,11 +367,12 @@ function AssetGrid() {
 function PostsTab() {
   const project = useProject();
   const setProject = useEditor((s) => s.setProject);
-  const view = useEditor((s) => s.view);
-  const setView = useEditor((s) => s.setView);
+  const movePost = useEditor((s) => s.movePost);
   const total = project.layout.rows * project.layout.cols;
   const posts = Array.from({ length: total }, (_, i) => project.copyPlan.posts[i] ?? { role: "", headline: "", body: "", notes: "" });
-  const setPost = (i: number, patch: Partial<(typeof posts)[number]>) =>
+  const ids = posts.map((_, i) => `post-${i}`);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const setPost = (i: number, patch: Partial<CopyPost>) =>
     setProject(
       (p) => {
         const next = Array.from({ length: Math.max(total, p.copyPlan.posts.length) }, (_, j) => p.copyPlan.posts[j] ?? { role: "", headline: "", body: "", notes: "" });
@@ -290,6 +381,10 @@ function PostsTab() {
       },
       { record: false },
     );
+  const onDragEnd = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return;
+    movePost(ids.indexOf(String(e.active.id)), ids.indexOf(String(e.over.id)));
+  };
 
   return (
     <>
@@ -305,34 +400,77 @@ function PostsTab() {
         <Field label="Caption (exported to POSTING-ORDER.txt)">
           <TextInput multiline value={project.copyPlan.caption} onChange={(v) => setProject((p) => ({ ...p, copyPlan: { ...p.copyPlan, caption: v } }), { record: false })} />
         </Field>
-        <p className="text-[11px] text-zinc-500">Layout templates pull headlines and body copy from these posts.</p>
+        <p className="text-[11px] text-zinc-500">Drag ⋮⋮ to reorder posts: elements that sit fully inside a post move with it; elements crossing seams stay in place. Layout templates read headlines from here.</p>
       </Section>
-      {posts.map((cp, i) => {
-        const active = view.kind === "post" && view.index === i;
-        return (
-          <Section
-            key={i}
-            title={`Post ${String(i + 1).padStart(2, "0")}${cp.role ? ` · ${cp.role}` : ""}`}
-            action={
-              <button className={cn("text-[11px]", active ? "text-sky-400" : "text-zinc-500 hover:text-zinc-300")} onClick={() => setView(active ? { kind: "grid" } : { kind: "post", index: i })}>
-                {active ? "viewing" : "preview"}
-              </button>
-            }
-          >
-            <div className="grid grid-cols-3 gap-2">
-              <Field label="Role">
-                <TextInput value={cp.role} onChange={(v) => setPost(i, { role: v })} placeholder="hook" />
-              </Field>
-              <Field label="Headline" className="col-span-2">
-                <TextInput value={cp.headline} onChange={(v) => setPost(i, { headline: v })} />
-              </Field>
-            </div>
-            <Field label="Body">
-              <TextInput multiline value={cp.body} onChange={(v) => setPost(i, { body: v })} />
-            </Field>
-          </Section>
-        );
-      })}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          {posts.map((cp, i) => (
+            <SortablePost key={ids[i]} id={ids[i]} index={i} cp={cp} setPost={setPost} />
+          ))}
+        </SortableContext>
+      </DndContext>
     </>
   );
+}
+
+function SortablePost({ id, index: i, cp, setPost }: { id: string; index: number; cp: CopyPost; setPost: (i: number, patch: Partial<CopyPost>) => void }) {
+  const view = useEditor((s) => s.view);
+  const setView = useEditor((s) => s.setView);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const active = view.kind === "post" && view.index === i;
+  return (
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined, position: "relative" }} className={isDragging ? "bg-zinc-900 shadow-xl" : ""}>
+      <Section
+        title={`Post ${String(i + 1).padStart(2, "0")}${cp.role ? ` · ${cp.role}` : ""}`}
+        action={
+          <div className="flex items-center gap-2">
+            <button className={cn("text-[11px]", active ? "text-sky-400" : "text-zinc-500 hover:text-zinc-300")} onClick={() => setView(active ? { kind: "grid" } : { kind: "post", index: i })}>
+              {active ? "viewing" : "preview"}
+            </button>
+            <button className="cursor-grab text-zinc-500 hover:text-zinc-200 active:cursor-grabbing" title="Drag to reorder post" {...attributes} {...listeners}>
+              <GripVertical size={14} />
+            </button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-3 gap-2">
+          <Field label="Role">
+            <TextInput value={cp.role} onChange={(v) => setPost(i, { role: v })} placeholder="hook" />
+          </Field>
+          <Field label="Headline" className="col-span-2">
+            <TextInput value={cp.headline} onChange={(v) => setPost(i, { headline: v })} />
+          </Field>
+        </div>
+        <Field label="Body">
+          <TextInput multiline value={cp.body} onChange={(v) => setPost(i, { body: v })} />
+        </Field>
+      </Section>
+    </div>
+  );
+}
+
+const VI_SAMPLE = "ầẩẫấậằẳẵắặềểễếệồổỗốộờởỡớợừửữứựỳỷỹýỵđĐƯƠươ";
+
+/**
+ * Does the font contain Vietnamese glyphs? Measures the sample with two different
+ * fallback stacks: if any glyph is missing, the fallback differs and so do the widths.
+ */
+async function coversVietnamese(path: string): Promise<boolean | undefined> {
+  try {
+    const face = new FontFace("tg-glyph-probe", `url("${path}")`);
+    await face.load();
+    document.fonts.add(face);
+    const ctx = document.createElement("canvas").getContext("2d");
+    if (!ctx) return undefined;
+    const width = (fallback: string) => {
+      ctx.font = `48px "tg-glyph-probe", ${fallback}`;
+      return [...VI_SAMPLE].map((ch) => ctx.measureText(ch).width);
+    };
+    const a = width("monospace");
+    const b = width("serif");
+    document.fonts.delete(face);
+    return a.every((w, i) => Math.abs(w - b[i]) < 0.01);
+  } catch {
+    return undefined;
+  }
 }

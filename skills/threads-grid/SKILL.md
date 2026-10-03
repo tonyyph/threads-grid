@@ -108,7 +108,14 @@ pnpm export         # headless render → ./exports/latest/*.png (needs the dev 
 
 ### 6. Export on request
 
-`pnpm export` (or the **Export ZIP** button) writes `threads-grid-01.png …`, `threads-grid-preview.png`, `threads-grid-project.json`, `POSTING-ORDER.txt` to `exports/<timestamp>/` and `exports/latest/`. For 3×3/2×2 profile grids set `"export": { "order": "posting" }` so 01 is the first post to publish (profile grids show newest top-left).
+`pnpm export` (or the **Export ZIP** button) writes `threads-grid-01.png …`, `threads-grid-preview.png`, `threads-grid-project.json`, `POSTING-ORDER.txt` to `exports/<timestamp>/` and `exports/latest/`.
+
+- For 3×3/2×2 profile grids set `"export": { "order": "posting" }` so 01 is the first post to publish (profile grids show newest top-left).
+- Default is PNG at exact platform size. For smaller files use `"format": "jpeg", "quality": 0.92`; for print-quality masters `"scale": 2` (platforms downscale on upload).
+
+## Tell the user what they can do in the editor
+
+Double-click text to edit in place · Shift/⌘-click or drag a marquee to multi-select, then align/distribute in the inspector · drag ⋮⋮ in the Posts tab to reorder posts (content inside a post moves with it) · drop images on any post · upload a brand font in the Brand tab · "Feed split" to preview how posts look separated · Export ZIP.
 
 ## Element model (canvas coordinates)
 
@@ -117,7 +124,7 @@ Canvas = `cols × post.width` by `rows × post.height`. Post *i* (row-major) sta
 | type | key fields |
 |---|---|
 | `text` | `text, fontFamily ("heading"/"body"/font id), fontSize, fontWeight, color, align, verticalAlign, lineHeight, letterSpacing (em), uppercase, italic, background, padding` |
-| `image` | `src, role (image/logo/product/screenshot/texture), fit (cover/contain/fill), focusX/focusY, mask (none/circle/arch/rounded/pill), frame (none/phone/browser)` |
+| `image` | `src, role (image/logo/product/screenshot/texture), fit (cover/contain/fill), zoom (crop zoom 1–5), focusX/focusY (crop focus %), mask (none/circle/arch/rounded/pill), frame (none/phone/browser)` |
 | `shape` | `shape (rect/ellipse/pill/arch/ring), fill, stroke, strokeWidth` |
 | `gradient` | `kind (linear/radial), from, to, angle` |
 | `line` | `variant (straight/arc/wave), color, thickness, dash` |
@@ -125,7 +132,7 @@ Canvas = `cols × post.width` by `rows × post.height`. Post *i* (row-major) sta
 | `quote` | `text, author, fill, accent, padding` + typography |
 | `cta` | `text, fill, arrow` + typography |
 
-Colors accept brand tokens (`primary, secondary, accent, background, surface, text, muted`) or any CSS color — **prefer tokens** so restyling works. Fonts: `inter, be-vietnam, montserrat, space-grotesk, playfair, cormorant, lora, jetbrains` (all include Vietnamese). Full reference: `template/README.md`.
+Colors accept brand tokens (`primary, secondary, accent, background, surface, text, muted`) or any CSS color — **prefer tokens** so restyling works. Fonts: `inter, be-vietnam, montserrat, space-grotesk, playfair, cormorant, lora, jetbrains` (all include Vietnamese), or a brand font the user uploads in the editor (Brand tab → stored in `brand.customFonts`; the editor flags fonts without Vietnamese glyphs — don't use those for VI copy). Full reference: `template/README.md`.
 
 ## Connected-design rules
 

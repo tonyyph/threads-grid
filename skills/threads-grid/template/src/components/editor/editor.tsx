@@ -7,6 +7,7 @@ import { Inspector } from "@/components/inspector/inspector";
 import { defaultProject } from "@/lib/defaults";
 import { buildBundle, bundleToZip, downloadBlob, saveBundleToDisk } from "@/lib/export-render";
 import { inlineImages } from "@/lib/image-cache";
+import { customFontFamily, postRects } from "@/lib/geometry";
 import { loadProjectFromServer, saveProjectToServer } from "@/lib/storage";
 import { useEditor } from "@/lib/store";
 import type { Project } from "@/lib/types";
@@ -79,21 +80,35 @@ export function Editor() {
         if (s.project) saveProjectToServer(s.project).then(() => s.setSaveState("saved"));
         return;
       }
-      const el = s.project?.elements.find((x) => x.id === s.selectedId);
+      if (mod && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        const p = s.project;
+        if (!p) return;
+        // In single-post view, select only that post's elements.
+        const r = s.view.kind === "post" ? postRects(p)[s.view.index] : null;
+        s.selectMany(p.elements.filter((x) => !x.hidden && !x.locked && (!r || (x.x < r.x + r.w && x.x + x.w > r.x && x.y < r.y + r.h && x.y + x.h > r.y))).map((x) => x.id));
+        return;
+      }
       if (e.key === "Escape") return s.select(null);
-      if (!el) return;
+      if (!s.selectedIds.length) return;
       if (mod && e.key.toLowerCase() === "d") {
         e.preventDefault();
-        s.duplicateElement(el.id);
+        s.duplicateSelected();
       } else if (e.key === "Backspace" || e.key === "Delete") {
         e.preventDefault();
-        s.removeElement(el.id);
-      } else if (e.key.startsWith("Arrow") && !el.locked) {
+        s.removeSelected();
+      } else if (e.key === "Enter" && s.selectedId) {
+        const el = s.project?.elements.find((x) => x.id === s.selectedId);
+        if (el && "text" in el && !el.locked) {
+          e.preventDefault();
+          s.setEditing(el.id);
+        }
+      } else if (e.key.startsWith("Arrow")) {
         e.preventDefault();
         const step = e.shiftKey ? 10 : 1;
         const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
         const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-        s.updateElement(el.id, { x: el.x + dx, y: el.y + dy });
+        s.nudgeSelected(dx, dy);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -165,6 +180,16 @@ export function Editor() {
         <Inspector />
       </div>
       <ExportStage ref={stageRef} project={project} srcMap={srcMap} />
+      <CustomFontFaces fonts={project.brand.customFonts} />
     </div>
   );
+}
+
+/** @font-face rules for uploaded fonts. Inline <style> is picked up by html-to-image's font embedding. */
+function CustomFontFaces({ fonts }: { fonts: Project["brand"]["customFonts"] }) {
+  if (!fonts.length) return null;
+  const css = fonts
+    .map((f) => `@font-face{font-family:"${customFontFamily(f.id)}";src:url("${f.path}");font-weight:${f.weight};font-style:${f.style};font-display:block;}`)
+    .join("\n");
+  return <style dangerouslySetInnerHTML={{ __html: css }} />;
 }

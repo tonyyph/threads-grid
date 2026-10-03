@@ -28,7 +28,7 @@ export function ElementContent({ el, brand, mode, srcMap }: { el: GridElement; b
   return <div style={outer}>{renderBody(el, brand, mode, c, shadow, srcMap)}</div>;
 }
 
-function typo(el: { fontFamily: string; fontSize: number; fontWeight: number; color: string; italic: boolean; uppercase: boolean; letterSpacing: number; lineHeight: number; align: string }, brand: Brand): CSSProperties {
+export function typo(el: { fontFamily: string; fontSize: number; fontWeight: number; color: string; italic: boolean; uppercase: boolean; letterSpacing: number; lineHeight: number; align: string }, brand: Brand): CSSProperties {
   return {
     fontFamily: resolveFont(el.fontFamily, brand),
     fontSize: el.fontSize,
@@ -99,7 +99,16 @@ function renderBody(el: GridElement, brand: Brand, mode: Mode, c: (v: string) =>
           src={src}
           alt={el.name ?? el.role}
           draggable={false}
-          style={{ width: "100%", height: "100%", objectFit: el.fit, objectPosition: `${el.focusX}% ${el.focusY}%`, display: "block", borderRadius: el.frame === "none" ? maskRadius(el.mask, el.radius) : undefined }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: el.fit,
+            objectPosition: `${el.focusX}% ${el.focusY}%`,
+            display: "block",
+            borderRadius: el.frame === "none" && el.zoom === 1 ? maskRadius(el.mask, el.radius) : undefined,
+            transform: el.zoom !== 1 ? `scale(${el.zoom})` : undefined,
+            transformOrigin: `${el.focusX}% ${el.focusY}%`,
+          }}
         />
       );
       if (el.frame === "phone") {
@@ -123,7 +132,7 @@ function renderBody(el: GridElement, brand: Brand, mode: Mode, c: (v: string) =>
           </div>
         );
       }
-      return <div style={{ ...fill, overflow: el.mask !== "none" ? "hidden" : undefined, borderRadius: maskRadius(el.mask, el.radius) }}>{img}</div>;
+      return <div style={{ ...fill, overflow: el.mask !== "none" || el.zoom !== 1 || el.radius > 0 ? "hidden" : undefined, borderRadius: maskRadius(el.mask, el.radius) }}>{img}</div>;
     }
 
     case "shape": {

@@ -8,12 +8,25 @@ import type { Project } from "./types";
 export type RenderedPost = { index: number; number: number; fileName: string; blob: Blob; canvas: HTMLCanvasElement };
 export type ExportBundle = { posts: RenderedPost[]; preview: Blob | null; projectJson: string };
 
-export function postFileName(p: Project, n: number) {
-  return `${p.export.fileBase}-${String(n).padStart(2, "0")}.png`;
+export function fileExt(p: Project) {
+  return p.export.format === "jpeg" ? "jpg" : p.export.format;
 }
 
-function canvasToBlob(c: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG encode failed"))), "image/png"));
+export function postFileName(p: Project, n: number) {
+  return `${p.export.fileBase}-${String(n).padStart(2, "0")}.${fileExt(p)}`;
+}
+
+function canvasToBlob(c: HTMLCanvasElement, p: Project): Promise<Blob> {
+  const type = `image/${p.export.format}`;
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error(`${type} encode failed`))), type, p.export.quality));
+}
+
+/** Force-load every font face the stage uses (lazy fonts would otherwise render as fallback). */
+async function loadStageFonts(stage: HTMLElement) {
+  const families = new Set<string>();
+  stage.querySelectorAll<HTMLElement>("*").forEach((n) => families.add(getComputedStyle(n).fontFamily));
+  await Promise.all([...families].map((f) => document.fonts.load(`16px ${f}`).catch(() => undefined)));
+  await document.fonts.ready;
 }
 
 /**
@@ -22,7 +35,7 @@ function canvasToBlob(c: HTMLCanvasElement): Promise<Blob> {
  * never hit browser canvas-area limits (Safari caps at ~16.7M px).
  */
 export async function renderPosts(stage: HTMLElement, p: Project, onProgress?: (done: number, total: number) => void): Promise<RenderedPost[]> {
-  await document.fonts.ready;
+  await loadStageFonts(stage);
   await waitForImages(stage);
   const { width: W, height: H } = canvasSize(p);
   const fontEmbedCSS = await getFontEmbedCSS(stage);
@@ -34,7 +47,8 @@ export async function renderPosts(stage: HTMLElement, p: Project, onProgress?: (
       height: r.h,
       canvasWidth: r.w,
       canvasHeight: r.h,
-      pixelRatio: 1,
+      pixelRatio: p.export.scale,
+      backgroundColor: p.export.format === "jpeg" ? "#ffffff" : undefined,
       fontEmbedCSS,
       style: { transform: `translate(${-r.x}px, ${-r.y}px)`, transformOrigin: "0 0", width: `${W}px`, height: `${H}px` },
     };
@@ -42,7 +56,7 @@ export async function renderPosts(stage: HTMLElement, p: Project, onProgress?: (
     // First capture in a session can miss decoded images in WebKit; one retry is cheap.
     if (r.index === 0) canvas = await toCanvas(stage, opts);
     const n = exportNumber(p, r.index);
-    out.push({ index: r.index, number: n, fileName: postFileName(p, n), blob: await canvasToBlob(canvas), canvas });
+    out.push({ index: r.index, number: n, fileName: postFileName(p, n), blob: await canvasToBlob(canvas, p), canvas });
     onProgress?.(out.length, rects.length);
   }
   return out.sort((a, b) => a.number - b.number);
@@ -66,7 +80,7 @@ export async function renderPreview(p: Project, posts: RenderedPost[], gap = 0):
     const r = rects[post.index];
     ctx.drawImage(post.canvas, (r.x + r.col * gap) * scale, (r.y + r.row * gap) * scale, r.w * scale, r.h * scale);
   }
-  return canvasToBlob(c);
+  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG encode failed"))), "image/png"));
 }
 
 export async function buildBundle(stage: HTMLElement, p: Project, onProgress?: (done: number, total: number) => void): Promise<ExportBundle> {

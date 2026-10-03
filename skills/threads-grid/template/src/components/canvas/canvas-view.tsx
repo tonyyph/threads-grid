@@ -2,17 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Rnd } from "react-rnd";
-import { canvasSize, exportNumber, postRects } from "@/lib/geometry";
+import { canvasSize, exportNumber, postRects, rotatedBounds } from "@/lib/geometry";
 import { uploadAsset } from "@/lib/storage";
 import { useEditor, useProject } from "@/lib/store";
 import type { GridElement, Project } from "@/lib/types";
 import { CanvasBackground } from "./canvas-background";
-import { ElementContent } from "./element-view";
+import { ElementContent, typo } from "./element-view";
 
 type Guide = { axis: "x" | "y"; at: number };
 
 /** The visual layer: identical to the export stage, so what you see is what exports. */
-function VisualLayer({ project }: { project: Project }) {
+function VisualLayer({ project, editingId }: { project: Project; editingId?: string | null }) {
   const { width, height } = canvasSize(project);
   return (
     <div style={{ position: "absolute", left: 0, top: 0, width, height, overflow: "hidden" }}>
@@ -20,7 +20,7 @@ function VisualLayer({ project }: { project: Project }) {
       {project.elements
         .filter((el) => !el.hidden)
         .map((el) => (
-          <div key={el.id} style={{ position: "absolute", left: el.x, top: el.y, width: el.w, height: el.h, mixBlendMode: el.blendMode }}>
+          <div key={el.id} style={{ position: "absolute", left: el.x, top: el.y, width: el.w, height: el.h, mixBlendMode: el.blendMode, visibility: el.id === editingId ? "hidden" : undefined }}>
             <ElementContent el={el} brand={project.brand} mode="editor" />
           </div>
         ))}
@@ -52,28 +52,88 @@ function snapAxis(start: number, size: number, targets: number[], threshold: num
   return best ? { value: Math.round(best.value), guide: best.guide } : { value: start, guide: null };
 }
 
-function InteractionBox({ el, zoom, project, onGuides }: { el: GridElement; zoom: number; project: Project; onGuides: (g: Guide[]) => void }) {
-  const selectedId = useEditor((s) => s.selectedId);
-  const select = useEditor((s) => s.select);
+const TEXT_TYPES = new Set(["text", "quote", "cta", "badge"]);
+
+/** Inline editor shown over a text-like element on double-click. */
+function InlineTextEditor({ el, project }: { el: GridElement; project: Project }) {
   const updateElement = useEditor((s) => s.updateElement);
+  const setEditing = useEditor((s) => s.setEditing);
   const checkpoint = useEditor((s) => s.checkpoint);
-  const selected = selectedId === el.id;
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    checkpoint();
+    const t = ref.current;
+    if (t) {
+      t.focus();
+      t.select();
+    }
+  }, [checkpoint]);
+  if (!("text" in el) || !("fontFamily" in el)) return null;
+  const pad = el.type === "quote" ? el.padding : el.type === "text" ? el.padding : 0;
+  return (
+    <textarea
+      ref={ref}
+      value={el.text}
+      spellCheck={false}
+      onChange={(e) => updateElement(el.id, { text: e.target.value } as Partial<GridElement>, { record: false })}
+      onBlur={() => setEditing(null)}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Escape" || (e.key === "Enter" && (e.metaKey || e.ctrlKey))) (e.target as HTMLTextAreaElement).blur();
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      style={{
+        ...typo(el, project.brand),
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        padding: pad,
+        resize: "none",
+        border: "none",
+        outline: "none",
+        overflow: "hidden",
+        background: "rgba(14,165,233,0.06)",
+        transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+        cursor: "text",
+        zIndex: 5,
+      }}
+    />
+  );
+}
+
+type DragGroup = { start: { x: number; y: number }; others: { id: string; x: number; y: number }[] };
+
+function InteractionBox({ el, zoom, project, onGuides }: { el: GridElement; zoom: number; project: Project; onGuides: (g: Guide[]) => void }) {
+  const selected = useEditor((s) => s.selectedIds.includes(el.id));
+  const multi = useEditor((s) => s.selectedIds.length > 1);
+  const editing = useEditor((s) => s.editingId === el.id);
+  const select = useEditor((s) => s.select);
+  const setEditing = useEditor((s) => s.setEditing);
+  const updateElement = useEditor((s) => s.updateElement);
+  const updateElements = useEditor((s) => s.updateElements);
+  const checkpoint = useEditor((s) => s.checkpoint);
+  const single = selected && !multi;
   const hs = 12 / zoom; // handle size in canvas px, constant on screen
   const targets = useRef<ReturnType<typeof snapTargets> | null>(null);
+  const group = useRef<DragGroup | null>(null);
 
   const snap = (x: number, y: number) => {
     if (!project.guides.snap) return { x: Math.round(x), y: Math.round(y), guides: [] as Guide[] };
     const t = (targets.current ??= snapTargets(project));
     const th = 8 / zoom;
-    const sx = snapAxis(x, el.w, t.xs, th);
-    const sy = snapAxis(y, el.h, t.ys, th);
+    // Snap the visible (rotated) bounds, then convert back to the element's box.
+    const b = rotatedBounds({ ...el, x, y });
+    const sx = snapAxis(b.x, b.w, t.xs, th);
+    const sy = snapAxis(b.y, b.h, t.ys, th);
     const g = project.guides.gridSize;
     const guides: Guide[] = [];
     if (sx.guide !== null) guides.push({ axis: "x", at: sx.guide });
     if (sy.guide !== null) guides.push({ axis: "y", at: sy.guide });
     return {
-      x: sx.guide !== null ? sx.value : Math.round(x / g) * g,
-      y: sy.guide !== null ? sy.value : Math.round(y / g) * g,
+      x: sx.guide !== null ? Math.round(sx.value - (b.x - x)) : Math.round(x / g) * g,
+      y: sy.guide !== null ? Math.round(sy.value - (b.y - y)) : Math.round(y / g) * g,
       guides,
     };
   };
@@ -116,45 +176,66 @@ function InteractionBox({ el, zoom, project, onGuides }: { el: GridElement; zoom
       scale={zoom}
       position={{ x: el.x, y: el.y }}
       size={{ width: el.w, height: el.h }}
-      disableDragging={el.locked}
-      enableResizing={selected && !el.locked}
+      disableDragging={el.locked || editing}
+      enableResizing={single && !el.locked && !editing}
       lockAspectRatio={el.type === "badge" && el.shape === "circle"}
       resizeHandleStyles={handleStyles}
-      resizeHandleComponent={selected && !el.locked ? { topLeft: knob, topRight: knob, bottomLeft: knob, bottomRight: knob } : undefined}
+      resizeHandleComponent={single && !el.locked ? { topLeft: knob, topRight: knob, bottomLeft: knob, bottomRight: knob } : undefined}
       onMouseDown={(e) => {
         e.stopPropagation();
-        select(el.id);
+        select(el.id, { additive: e.shiftKey || e.metaKey || e.ctrlKey });
+      }}
+      onDoubleClick={() => {
+        if (TEXT_TYPES.has(el.type) && !el.locked) {
+          select(el.id);
+          setEditing(el.id);
+        }
       }}
       onDragStart={() => {
         targets.current = null;
         checkpoint();
+        const st = useEditor.getState();
+        const ids = st.selectedIds.includes(el.id) ? st.selectedIds : [el.id];
+        group.current = {
+          start: { x: el.x, y: el.y },
+          others: (st.project?.elements ?? []).filter((o) => o.id !== el.id && ids.includes(o.id) && !o.locked).map((o) => ({ id: o.id, x: o.x, y: o.y })),
+        };
       }}
       onDrag={(_e, d) => {
         const s = snap(d.x, d.y);
         onGuides(s.guides);
-        updateElement(el.id, { x: s.x, y: s.y }, { record: false });
+        const g = group.current;
+        const patches: Record<string, Partial<GridElement>> = { [el.id]: { x: s.x, y: s.y } };
+        if (g) for (const o of g.others) patches[o.id] = { x: o.x + s.x - g.start.x, y: o.y + s.y - g.start.y };
+        updateElements(patches, { record: false });
       }}
-      onDragStop={() => onGuides([])}
+      onDragStop={() => {
+        onGuides([]);
+        group.current = null;
+      }}
       onResizeStart={() => checkpoint()}
       onResize={(_e, _dir, ref, _delta, pos) => {
         updateElement(el.id, { w: Math.max(4, Math.round(ref.offsetWidth)), h: Math.max(4, Math.round(ref.offsetHeight)), x: Math.round(pos.x), y: Math.round(pos.y) }, { record: false });
       }}
       style={{
-        outline: selected ? `${2 / zoom}px solid #0ea5e9` : undefined,
-        cursor: el.locked ? "default" : "move",
-        zIndex: selected ? 2 : 1,
+        outline: selected ? `${(single ? 2 : 1.5) / zoom}px ${single ? "solid" : "dashed"} #0ea5e9` : undefined,
+        cursor: el.locked ? "default" : editing ? "text" : "move",
+        zIndex: editing ? 4 : selected ? 2 : 1,
       }}
       className="group"
+      data-element-id={el.id}
     >
-      {!selected ? <div className="h-full w-full group-hover:outline group-hover:outline-sky-400/60" style={{ outlineWidth: 1 / zoom }} /> : null}
-      {selected && !el.locked ? (
+      {/* Always mounted: unmounting the click target between clicks would swallow dblclick. */}
+      <div className={selected ? "h-full w-full" : "h-full w-full group-hover:outline group-hover:outline-sky-400/60"} style={{ outlineWidth: 1 / zoom }} />
+      {editing ? <InlineTextEditor el={el} project={project} /> : null}
+      {single && !el.locked && !editing ? (
         <div
           onPointerDown={startRotate}
           title="Rotate (Shift = 15° steps)"
           style={{ position: "absolute", left: "50%", top: -hs * 3, width: hs * 1.2, height: hs * 1.2, marginLeft: -hs * 0.6, borderRadius: "50%", background: "#fff", border: `${1.5 / zoom}px solid #0ea5e9`, cursor: "grab" }}
         />
       ) : null}
-      {selected && el.rotation !== 0 ? (
+      {selected && el.rotation !== 0 && !editing ? (
         <div style={{ position: "absolute", inset: 0, transform: `rotate(${el.rotation}deg)`, outline: `${1 / zoom}px dashed #0ea5e9`, pointerEvents: "none" }} />
       ) : null}
     </Rnd>
@@ -195,7 +276,10 @@ export function CanvasView() {
   const select = useEditor((s) => s.select);
   const setProject = useEditor((s) => s.setProject);
   const addElement = useEditor((s) => s.addElement);
+  const selectMany = useEditor((s) => s.selectMany);
+  const editingId = useEditor((s) => s.editingId);
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -254,6 +338,40 @@ export function CanvasView() {
     }
   };
 
+  /** Drag on empty canvas = marquee select (Shift adds to the selection). */
+  const startMarquee = (e: ReactPointerEvent) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest("[data-element-id]") || !stageRef.current) return;
+    e.stopPropagation();
+    const box = stageRef.current.getBoundingClientRect();
+    const toCanvas = (cx: number, cy: number) => ({ x: (cx - box.left) / zoom + (focus?.x ?? 0), y: (cy - box.top) / zoom + (focus?.y ?? 0) });
+    const a = toCanvas(e.clientX, e.clientY);
+    const base = e.shiftKey ? useEditor.getState().selectedIds : [];
+    if (!e.shiftKey) select(null);
+    let rect = { x: a.x, y: a.y, w: 0, h: 0 };
+    const move = (ev: PointerEvent) => {
+      const b = toCanvas(ev.clientX, ev.clientY);
+      rect = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+      setMarquee(rect);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setMarquee(null);
+      if (rect.w < 4 / zoom && rect.h < 4 / zoom) return;
+      const hits = useEditor
+        .getState()
+        .project!.elements.filter((el) => {
+          if (el.hidden || el.locked) return false;
+          const b = rotatedBounds(el);
+          return b.x < rect.x + rect.w && b.x + b.w > rect.x && b.y < rect.y + rect.h && b.y + b.h > rect.y;
+        })
+        .map((el) => el.id);
+      selectMany([...new Set([...base, ...hits])]);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   const scaled: CSSProperties = { position: "absolute", left: 0, top: 0, width: W, height: H, transform: `scale(${zoom})`, transformOrigin: "0 0" };
 
   if (gapPreview && !focus) {
@@ -280,7 +398,10 @@ export function CanvasView() {
     <div
       ref={viewport}
       className="relative flex-1 overflow-auto bg-zinc-950"
-      onPointerDown={() => select(null)}
+      onPointerDown={(e) => {
+        // pointerdown fires before the element's mousedown: never clear a selection the click is about to extend.
+        if (!(e.target as HTMLElement).closest("[data-element-id]")) select(null);
+      }}
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -304,10 +425,11 @@ export function CanvasView() {
             </button>
           ))}
         </div>
-        <div ref={stageRef} className={dragOver ? "ring-2 ring-sky-500" : "shadow-2xl"} style={{ position: "relative", width: shownW * zoom, height: shownH * zoom, overflow: focus ? "hidden" : "visible" }}>
+        <div ref={stageRef} onPointerDown={startMarquee} className={dragOver ? "ring-2 ring-sky-500" : "shadow-2xl"} style={{ position: "relative", width: shownW * zoom, height: shownH * zoom, overflow: focus ? "hidden" : "visible" }}>
           <div style={{ ...scaled, left: focus ? -focus.x * zoom : 0, top: focus ? -focus.y * zoom : 0 }}>
-            <VisualLayer project={project} />
+            <VisualLayer project={project} editingId={editingId} />
             <GuidesOverlay project={project} zoom={zoom} active={guides} />
+            {marquee ? <div style={{ position: "absolute", left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h, background: "rgba(14,165,233,0.12)", outline: `${1 / zoom}px solid #0ea5e9`, zIndex: 10, pointerEvents: "none" }} /> : null}
             {project.elements
               .filter((el) => !el.hidden)
               .map((el) => (

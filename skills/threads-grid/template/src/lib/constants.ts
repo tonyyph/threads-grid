@@ -172,3 +172,8 @@ export const STYLE_PRESETS: StylePreset[] = [
 ];
 
 export const ZOOM_STEPS = [0.05, 0.08, 0.1, 0.125, 0.15, 0.2, 0.25, 0.33, 0.5, 0.75, 1];
+
+/** Bundled + uploaded fonts, for font pickers. */
+export function allFontOptions(brand: Brand): { id: string; label: string }[] {
+  return [...FONT_OPTIONS.map((f) => ({ id: f.id, label: f.label })), ...brand.customFonts.map((f) => ({ id: f.id, label: `${f.label} (uploaded)` }))];
+}

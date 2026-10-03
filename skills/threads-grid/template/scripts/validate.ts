@@ -23,6 +23,10 @@ for (const el of p.elements) {
   if (!postsTouchedBy(p, el).length) warnings.push(`${el.id}: entirely outside the canvas`);
   if ("fontSize" in el && el.type === "text" && el.fontSize < Math.min(p.post.width, p.post.height) * 0.024) warnings.push(`${el.id}: font ${el.fontSize}px is likely unreadable on a phone (min ≈ ${Math.ceil(Math.min(p.post.width, p.post.height) * 0.024)}px)`);
 }
+for (const f of p.brand.customFonts) {
+  if (!existsSync(path.join(process.cwd(), "public", f.path))) warnings.push(`font ${f.id}: file not found at public${f.path}`);
+  if (f.vietnamese === false && p.copyPlan.language === "vi") warnings.push(`font ${f.id} ("${f.label}") has no Vietnamese glyphs but copy is Vietnamese`);
+}
 if (p.copyPlan.posts.length && p.copyPlan.posts.length !== p.layout.rows * p.layout.cols) warnings.push(`copyPlan has ${p.copyPlan.posts.length} posts but layout has ${p.layout.rows * p.layout.cols}`);
 
 console.log(`✓ ${PROJECT_FILE} valid — "${p.name}", ${p.layout.rows}×${p.layout.cols} posts of ${p.post.width}×${p.post.height} (canvas ${width}×${height}), ${p.elements.length} elements, style ${p.style}`);
