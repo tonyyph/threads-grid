@@ -72,38 +72,49 @@ Doing that by hand means fighting crop boxes in a design tool. Generating it wit
 
 ## Showcase
 
-Both grids below were built with this skill, each from a short brief and then refined in the editor.
+**Neon Blocks — Threads launch.** This 7-post portrait carousel (1080×1350) launches a React Native falling-block puzzle game. It was built with this skill from a short brief, then refined in the editor.
 
 <table>
 <tr>
-<td width="50%" valign="top">
+<td width="25%" valign="top"><img src="docs/assets/neon-post-01.jpg" alt="Post 01, Hook: Drop in. Light up. Neon I, O and T pieces; the T-piece continues into post 02."/><br/><sub><b>01 · Hook</b><br/>Drop in. Light up.</sub></td>
+<td width="25%" valign="top"><img src="docs/assets/neon-post-02.jpg" alt="Post 02, Controls: No buttons. Just thumbs. Phone screenshot next to the four gestures."/><br/><sub><b>02 · Controls</b><br/>No buttons. Just thumbs.</sub></td>
+<td width="25%" valign="top"><img src="docs/assets/neon-post-03.jpg" alt="Post 03, Game modes: 7 modes. 7 ways to win. Numbered list of all seven modes beside the mode picker."/><br/><sub><b>03 · Game modes</b><br/>7 modes. 7 ways to win.</sub></td>
+<td width="25%" valign="top"><img src="docs/assets/neon-post-04.jpg" alt="Post 04, Zone: Stop time. Bank clears. A large “20s” stat and the Zone screen."/><br/><sub><b>04 · Zone</b><br/>Stop time. Bank clears.</sub></td>
+</tr>
+<tr>
+<td width="25%" valign="top"><img src="docs/assets/neon-post-05.jpg" alt="Post 05, Daily challenge: One seed. Everyone. Every day. A “3:00” timer and the daily run."/><br/><sub><b>05 · Daily challenge</b><br/>One seed. Everyone. Every day.</sub></td>
+<td width="25%" valign="top"><img src="docs/assets/neon-post-06.jpg" alt="Post 06, Progress: Every run leaves a mark. 7 mode records and 22 achievements."/><br/><sub><b>06 · Progress</b><br/>Every run leaves a mark.</sub></td>
+<td width="25%" valign="top"><img src="docs/assets/neon-post-07.jpg" alt="Post 07, Themes · CTA: 8 themes. Your arcade. Three themed phones and a “Get Neon Blocks” button."/><br/><sub><b>07 · Themes · CTA</b><br/>8 themes. Your arcade.</sub></td>
+<td width="25%" valign="top">
 
-**Neon Blocks — app launch**
+**How it was built**
 
-7 portrait posts · `fintech-dark-grid`
-
+- Style `fintech-dark-grid`
 - Real app screenshots and the app icon
 - Orbitron and Chakra Petch fonts, uploaded in the Brand tab
-- Neon tetromino SVGs used as decoration
-- A glow on every seam, and one piece crossing from post 1 into post 2
-
-</td>
-<td width="50%" valign="top">
-
-**Dương Gia — Vietnamese premium product**
-
-6 square posts · `luxury-product-launch`
-
-- Vietnamese copy throughout
-- Playfair Display and Be Vietnam Pro fonts
-- The product jar sits on the seam between posts 1 and 2
-- A champagne line runs through all six posts
+- Neon tetromino SVGs as decoration
+- A glow on every seam, and one piece crossing from post 01 into post 02
+- One feature per post, ending on a CTA
 
 </td>
 </tr>
 </table>
 
-<img src="docs/assets/showcase-duong-gia.jpg" alt="A six-post connected carousel for a Vietnamese cordyceps brand: dark green background, a product jar inside a cream arch on the seam between posts 1 and 2, and a champagne line through all posts" width="100%"/>
+<details>
+<summary><b>Caption exported with the grid</b> (<code>POSTING-ORDER.txt</code>)</summary>
+
+```text
+Drop in. Light up.
+
+Neon Blocks is a falling-block puzzle made for one thumb: drag, tap, flick, done.
+7 modes, a Zone that freezes time, a Daily seed shared by everyone, 22 achievements and 8 themes to unlock your style.
+
+Which mode are you starting with? Link in bio.
+
+#puzzlegame #indiegame #cyberpunk #mobilegaming #neon
+```
+
+</details>
 
 ---
 
@@ -403,7 +414,7 @@ No license has been chosen yet. Until one is added, all rights are reserved by t
 **threads-grid** là skill cho AI agent giúp thiết kế bộ bài đăng **liền mạch** cho Threads, Instagram và Facebook. Thay vì làm từng ảnh riêng lẻ, bạn thiết kế trên **một canvas lớn**, rồi xuất ra từng post với kích thước chuẩn của nền tảng. Nhờ vậy sản phẩm, tiêu đề và hoạ tiết có thể nối tiếp nhau qua các post.
 
 - **Chỉ cần mô tả bằng một câu**, ví dụ: *"Tạo Threads grid cho Dương Gia ra mắt Đông trùng hạ thảo Tây Tạng, 6 post vuông, phong cách thương hiệu Việt cao cấp, xanh và champagne."* Agent sẽ viết copy, dựng bản nháp, xuất ảnh, tự kiểm tra kết quả và mở trình chỉnh sửa cho bạn.
-- **Ví dụ thực tế**: bộ 7 post dọc ra mắt game Neon Blocks (ảnh chụp app, font thương hiệu tự tải lên, khối neon nối từ post 1 sang post 2) và bộ 6 post vuông cho Dương Gia (xem phần [Showcase](#showcase)).
+- **Ví dụ thực tế**: bộ 7 post dọc ra mắt game Neon Blocks, dùng ảnh chụp app, font thương hiệu tự tải lên, và có khối neon nối từ post 1 sang post 2 (xem phần [Showcase](#showcase)).
 - **Trình chỉnh sửa thật**: kéo thả, nhấp đúp để sửa chữ, chọn nhiều phần tử rồi căn chỉnh, kéo để đổi thứ tự post, hoàn tác/làm lại, tự lưu.
 - **Chuẩn tiếng Việt**: 8 font có đủ dấu tiếng Việt, kiểm tra dấu tự động khi tải font thương hiệu lên, có sẵn style `vietnamese-brand-campaign` và hướng dẫn viết copy tiếng Việt trong `copy-ideas.md`.
 - **Xuất file**: PNG/JPG/WebP đúng kích thước nền tảng, kèm ảnh xem trước toàn bộ grid, file dự án và caption sẵn để đăng.
