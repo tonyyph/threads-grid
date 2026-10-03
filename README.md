@@ -16,9 +16,9 @@ An AI agent skill that scaffolds a real visual editor, drafts the first design f
 
 <br/>
 
-<img src="docs/assets/showcase-duong-gia.jpg" alt="A six-post connected Threads carousel for a Vietnamese cordyceps brand: a product jar sits on the seam between posts 1 and 2, and a champagne line runs through all six posts" width="100%"/>
+<img src="docs/assets/showcase-neon-blocks.jpg" alt="A seven-post connected Threads carousel launching Neon Blocks, a neon falling-block puzzle game: dark backgrounds, glowing tetromino pieces, app screenshots in phone frames and a call to action on the last post" width="100%"/>
 
-<sub>Six 1080×1080 posts, generated from a one-sentence brief and refined in the editor. The jar crosses the seam between posts 1 and 2; a single champagne line runs through all six.</sub>
+<sub>Seven 1080×1350 posts launching <b>Neon Blocks</b>, a mobile puzzle game. They use real app screenshots and brand fonts uploaded in the editor. A neon T-piece falls from post 1 into post 2, and a soft glow lights every seam.</sub>
 
 </div>
 
@@ -29,6 +29,7 @@ An AI agent skill that scaffolds a real visual editor, drafts the first design f
 - [threads-grid](#threads-grid)
   - [Contents](#contents)
   - [Why threads-grid](#why-threads-grid)
+  - [Showcase](#showcase)
   - [Features](#features)
   - [Quick start](#quick-start)
     - [1. Install the skill](#1-install-the-skill)
@@ -58,14 +59,51 @@ Doing that by hand means fighting crop boxes in a design tool. Generating it wit
 
 <table>
 <tr>
-<td width="50%"><img src="docs/assets/post-01.jpg" alt="Post 1 viewed alone: headline on the left, the left half of the product jar on the right"/></td>
-<td width="50%"><img src="docs/assets/post-02.jpg" alt="Post 2 viewed alone: the right half of the product jar on the left, origin story copy on the right"/></td>
+<td width="50%"><img src="docs/assets/neon-post-01.jpg" alt="Post 1 viewed alone: the hook 'Drop in. Light up.' with glowing I, O and T pieces; the magenta T-piece is cut off at the right edge"/></td>
+<td width="50%"><img src="docs/assets/neon-post-02.jpg" alt="Post 2 viewed alone: the rest of the magenta T-piece enters from the left edge, next to a phone screenshot and the gesture controls"/></td>
 </tr>
 <tr>
-<td align="center"><sub>Post 01 — reads on its own</sub></td>
-<td align="center"><sub>Post 02 — and continues the composition</sub></td>
+<td align="center"><sub>Post 01 reads on its own…</sub></td>
+<td align="center"><sub>…and the T-piece lands in post 02 when you swipe</sub></td>
 </tr>
 </table>
+
+---
+
+## Showcase
+
+Both grids below were built with this skill, each from a short brief and then refined in the editor.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Neon Blocks — app launch**
+
+7 portrait posts · `fintech-dark-grid`
+
+- Real app screenshots and the app icon
+- Orbitron and Chakra Petch fonts, uploaded in the Brand tab
+- Neon tetromino SVGs used as decoration
+- A glow on every seam, and one piece crossing from post 1 into post 2
+
+</td>
+<td width="50%" valign="top">
+
+**Dương Gia — Vietnamese premium product**
+
+6 square posts · `luxury-product-launch`
+
+- Vietnamese copy throughout
+- Playfair Display and Be Vietnam Pro fonts
+- The product jar sits on the seam between posts 1 and 2
+- A champagne line runs through all six posts
+
+</td>
+</tr>
+</table>
+
+<img src="docs/assets/showcase-duong-gia.jpg" alt="A six-post connected carousel for a Vietnamese cordyceps brand: dark green background, a product jar inside a cream arch on the seam between posts 1 and 2, and a champagne line through all posts" width="100%"/>
 
 ---
 
@@ -134,8 +172,13 @@ For other agents, link `skills/threads-grid` into that agent's skills folder, or
 ### 2. Ask for a grid
 
 ```text
-Create a Threads grid for Dương Gia launching Đông trùng hạ thảo Tây Tạng.
-Premium Vietnamese brand style, green and champagne, 6 square posts, product-centered, minimal text.
+Create a 7-post portrait Threads carousel launching Neon Blocks, my React Native puzzle game.
+Fintech dark grid style, use my app screenshots and icon, neon tetromino decorations, one feature per post.
+```
+
+```text
+Tạo Threads grid cho Dương Gia ra mắt Đông trùng hạ thảo Tây Tạng,
+6 post vuông, phong cách thương hiệu Việt cao cấp, xanh và champagne.
 ```
 
 The agent asks only for what is missing, scaffolds the editor, writes the copy, drafts and refines the layout, exports it, reviews the result, and hands you a running editor at `http://localhost:3210`.
@@ -216,7 +259,9 @@ Copy structures, hook formulas, CTA banks and Vietnamese copywriting guidance li
 
 ## The editor
 
-<img src="docs/assets/editor.jpg" alt="The threads-grid editor: style presets on the left, the six-post connected canvas in the center with the product jar selected across posts 1 and 2, and the inspector on the right" width="100%"/>
+<img src="docs/assets/editor.jpg" alt="The threads-grid editor with the Neon Blocks project: style presets on the left, the seven-post canvas in the center with the rotated T-piece selected across posts 1 and 2, and the inspector on the right reporting 'Spans posts 1, 2 · cropped per post on export'" width="100%"/>
+
+<sub>The selected T-piece is rotated −16° and spans posts 1 and 2. The inspector notes that it will be cropped into both posts on export.</sub>
 
 | Area | What it does |
 |---|---|
@@ -263,12 +308,12 @@ Run inside a scaffolded project.
 
 ```text
 exports/
-├── 2026-10-03T11-45-46/            every export is kept
+├── 2026-10-03T12-07-00/                      every export is kept
 └── latest/
-    ├── duong-gia-01.png … -06.png  one file per post, exact platform size
-    ├── duong-gia-preview.png       stitched overview of the whole grid
-    ├── duong-gia-project.json      snapshot of the project
-    └── POSTING-ORDER.txt           publishing order, caption, copy plan
+    ├── neon-blocks-threads-01.png … -07.png  one file per post, 1080×1350
+    ├── neon-blocks-threads-preview.png       stitched overview of the whole grid
+    ├── neon-blocks-threads-project.json      snapshot of the project
+    └── POSTING-ORDER.txt                     publishing order, caption, copy plan
 ```
 
 | Option | Values |
@@ -285,19 +330,22 @@ Everything lives in a single, human-readable `threads-grid.json`, validated by a
 
 ```jsonc
 {
-  "name": "Dương Gia — Đông trùng hạ thảo Tây Tạng",
-  "style": "luxury-product-launch",
-  "preset": "square",
-  "layout": { "mode": "carousel", "rows": 1, "cols": 6 },
+  "name": "Neon Blocks — Threads launch",
+  "style": "fintech-dark-grid",
+  "preset": "portrait",                                  // 1080×1350 per post
+  "layout": { "mode": "carousel", "rows": 1, "cols": 7 },
   "brand": {
-    "name": "Dương Gia",
-    "colors": { "primary": "#1f4d3a", "accent": "#c9a96e", "background": "#10241b" },
-    "fonts": { "heading": "playfair", "body": "be-vietnam" }
+    "name": "Neon Blocks",
+    "colors": { "primary": "#5b8cff", "accent": "#3cf0c5", "background": "#070a12" },
+    "fonts": { "heading": "space-grotesk", "body": "inter" },
+    "customFonts": [
+      { "id": "orbitron", "label": "Orbitron Black", "path": "/uploads/fonts/Orbitron_900Black.ttf", "weight": "900" }
+    ]
   },
   "elements": [
-    // canvas coordinates; this jar spans posts 1 and 2
-    { "id": "hero", "type": "image", "role": "product", "src": "/uploads/jar.png",
-      "fit": "contain", "x": 846, "y": 238, "w": 468, "h": 762 }
+    // canvas coordinates: x 760 → 1360 crosses the seam at 1080, so this piece spans posts 1 and 2
+    { "id": "t-piece", "type": "image", "src": "/uploads/decor/T.svg", "fit": "contain",
+      "x": 760, "y": 520, "w": 600, "h": 464, "rotation": -16 }
   ]
 }
 ```
@@ -355,6 +403,7 @@ No license has been chosen yet. Until one is added, all rights are reserved by t
 **threads-grid** là skill cho AI agent giúp thiết kế bộ bài đăng **liền mạch** cho Threads, Instagram và Facebook. Thay vì làm từng ảnh riêng lẻ, bạn thiết kế trên **một canvas lớn**, rồi xuất ra từng post với kích thước chuẩn của nền tảng. Nhờ vậy sản phẩm, tiêu đề và hoạ tiết có thể nối tiếp nhau qua các post.
 
 - **Chỉ cần mô tả bằng một câu**, ví dụ: *"Tạo Threads grid cho Dương Gia ra mắt Đông trùng hạ thảo Tây Tạng, 6 post vuông, phong cách thương hiệu Việt cao cấp, xanh và champagne."* Agent sẽ viết copy, dựng bản nháp, xuất ảnh, tự kiểm tra kết quả và mở trình chỉnh sửa cho bạn.
+- **Ví dụ thực tế**: bộ 7 post dọc ra mắt game Neon Blocks (ảnh chụp app, font thương hiệu tự tải lên, khối neon nối từ post 1 sang post 2) và bộ 6 post vuông cho Dương Gia (xem phần [Showcase](#showcase)).
 - **Trình chỉnh sửa thật**: kéo thả, nhấp đúp để sửa chữ, chọn nhiều phần tử rồi căn chỉnh, kéo để đổi thứ tự post, hoàn tác/làm lại, tự lưu.
 - **Chuẩn tiếng Việt**: 8 font có đủ dấu tiếng Việt, kiểm tra dấu tự động khi tải font thương hiệu lên, có sẵn style `vietnamese-brand-campaign` và hướng dẫn viết copy tiếng Việt trong `copy-ideas.md`.
 - **Xuất file**: PNG/JPG/WebP đúng kích thước nền tảng, kèm ảnh xem trước toàn bộ grid, file dự án và caption sẵn để đăng.
