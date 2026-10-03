@@ -10,6 +10,7 @@ An AI agent skill that scaffolds a real visual editor, drafts the first design f
 ![React 19](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+[![skills.sh](https://skills.sh/b/tonyyph/threads-grid)](https://skills.sh/tonyyph/threads-grid)
 ![Claude Code skill](https://img.shields.io/badge/Claude_Code-skill-D97757)
 ![Vietnamese ready](https://img.shields.io/badge/Ti%E1%BA%BFng_Vi%E1%BB%87t-ready-1f4d3a)
 
@@ -25,20 +26,25 @@ An AI agent skill that scaffolds a real visual editor, drafts the first design f
 
 ## Contents
 
-- [Why threads-grid](#why-threads-grid)
-- [Features](#features)
-- [Quick start](#quick-start)
-- [How it works](#how-it-works)
-- [Style presets & layout templates](#style-presets--layout-templates)
-- [The editor](#the-editor)
-- [Command reference](#command-reference)
-- [Export output](#export-output)
-- [Project file](#project-file)
-- [Repository layout](#repository-layout)
-- [Requirements](#requirements)
-- [Limitations](#limitations)
-- [Credits](#credits)
-- [Tiếng Việt](#tiếng-việt)
+- [threads-grid](#threads-grid)
+  - [Contents](#contents)
+  - [Why threads-grid](#why-threads-grid)
+  - [Features](#features)
+  - [Quick start](#quick-start)
+    - [1. Install the skill](#1-install-the-skill)
+    - [2. Ask for a grid](#2-ask-for-a-grid)
+    - [Without an agent](#without-an-agent)
+  - [How it works](#how-it-works)
+  - [Style presets \& layout templates](#style-presets--layout-templates)
+  - [The editor](#the-editor)
+  - [Command reference](#command-reference)
+  - [Export output](#export-output)
+  - [Project file](#project-file)
+  - [Repository layout](#repository-layout)
+  - [Requirements](#requirements)
+  - [Limitations](#limitations)
+  - [License](#license)
+  - [Tiếng Việt](#tiếng-việt)
 
 ---
 
@@ -99,11 +105,31 @@ Doing that by hand means fighting crop boxes in a design tool. Generating it wit
 ### 1. Install the skill
 
 ```bash
-git clone <this-repo> ~/threads-grid
+npx skills add tonyyph/threads-grid
+```
+
+The [`skills`](https://github.com/vercel-labs/skills) CLI detects your coding agents (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot and [60+ more](https://github.com/vercel-labs/skills#supported-agents)) and installs the skill for each of them.
+
+| Goal | Command |
+|---|---|
+| Install for every project on this machine | `npx skills add tonyyph/threads-grid -g` |
+| Install for one agent only | `npx skills add tonyyph/threads-grid -a claude-code` |
+| Non-interactive (CI, scripts) | `npx skills add tonyyph/threads-grid -g -a claude-code -y` |
+| Preview without installing | `npx skills add tonyyph/threads-grid --list` |
+| Update later | `npx skills update threads-grid` |
+| Uninstall | `npx skills remove threads-grid` |
+
+<details>
+<summary><b>Manual install (no CLI)</b></summary>
+
+```bash
+git clone https://github.com/tonyyph/threads-grid.git ~/threads-grid
 ln -s ~/threads-grid/skills/threads-grid ~/.claude/skills/threads-grid
 ```
 
-For a single project, link it into `<project>/.claude/skills/threads-grid` instead. Other agents can be pointed at [`skills/threads-grid/SKILL.md`](skills/threads-grid/SKILL.md).
+For other agents, link `skills/threads-grid` into that agent's skills folder, or point the agent at [`SKILL.md`](skills/threads-grid/SKILL.md).
+
+</details>
 
 ### 2. Ask for a grid
 
@@ -137,7 +163,7 @@ Create a bold viral carousel about "5 mistakes React Native developers make".
 ### Without an agent
 
 ```bash
-~/threads-grid/skills/threads-grid/scripts/scaffold.sh ./my-grid
+node ~/.claude/skills/threads-grid/scripts/scaffold.mjs ./my-grid   # path of your installed skill
 cd my-grid
 pnpm draft connected-headline --style bold-viral-carousel
 pnpm dev                      # http://localhost:3210
@@ -287,7 +313,7 @@ skills/threads-grid/
 ├── SKILL.md                 agent workflow, design rules, quality checklist
 ├── copy-ideas.md            copy structures, hooks, CTAs, Vietnamese guidance
 ├── style-prompts/           seven art-direction briefs
-├── scripts/scaffold.sh      creates a new editor project from the template
+├── scripts/scaffold.mjs     creates a new editor project from the template (cross-platform)
 └── template/                the Next.js editor
     ├── src/lib/             schema, geometry, store, templates, export pipeline
     ├── src/components/      editor shell, canvas, inspector, UI primitives
@@ -318,10 +344,6 @@ docs/assets/                 images used in this README
 
 ---
 
-## Credits
-
-The structure — an agent skill that ships a real editor, a JSON project file and an export bundle — is inspired by [**ParthJadhav/app-store-screenshots**](https://github.com/ParthJadhav/app-store-screenshots). threads-grid applies the same idea to connected social content.
-
 ## License
 
 No license has been chosen yet. Until one is added, all rights are reserved by the author.
@@ -337,4 +359,11 @@ No license has been chosen yet. Until one is added, all rights are reserved by t
 - **Chuẩn tiếng Việt**: 8 font có đủ dấu tiếng Việt, kiểm tra dấu tự động khi tải font thương hiệu lên, có sẵn style `vietnamese-brand-campaign` và hướng dẫn viết copy tiếng Việt trong `copy-ideas.md`.
 - **Xuất file**: PNG/JPG/WebP đúng kích thước nền tảng, kèm ảnh xem trước toàn bộ grid, file dự án và caption sẵn để đăng.
 
-Cài đặt và sử dụng: xem phần [Quick start](#quick-start) ở trên.
+**Cài đặt** (chạy được với Claude Code, Codex, Cursor và hơn 60 agent khác):
+
+```bash
+npx skills add tonyyph/threads-grid        # cho project hiện tại
+npx skills add tonyyph/threads-grid -g     # cho mọi project trên máy
+```
+
+Cách dùng chi tiết: xem phần [Quick start](#quick-start) ở trên.

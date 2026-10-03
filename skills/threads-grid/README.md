@@ -7,11 +7,11 @@ The full documentation, with screenshots, is in the [repository README](../../RE
 ## Install
 
 ```bash
-ln -s "$(pwd)" ~/.claude/skills/threads-grid          # all projects
-ln -s "$(pwd)" <project>/.claude/skills/threads-grid  # one project
+npx skills add tonyyph/threads-grid          # all detected agents, this project
+npx skills add tonyyph/threads-grid -g       # all projects on this machine
 ```
 
-Other agents: load [`SKILL.md`](SKILL.md).
+Works with Claude Code, Codex, Cursor, OpenCode, Gemini CLI, GitHub Copilot and every other agent supported by the [`skills`](https://github.com/vercel-labs/skills) CLI. Other agents can load [`SKILL.md`](SKILL.md) directly.
 
 ## Use
 
@@ -25,7 +25,7 @@ Premium Vietnamese brand style, green and champagne, 6 square posts.
 Or run it manually:
 
 ```bash
-scripts/scaffold.sh ./my-grid && cd my-grid
+node scripts/scaffold.mjs ./my-grid && cd my-grid
 pnpm draft product-hero-split --style luxury-product-launch
 pnpm dev        # editor at http://localhost:3210
 pnpm export     # PNGs in exports/latest/
@@ -38,7 +38,7 @@ pnpm export     # PNGs in exports/latest/
 | [`SKILL.md`](SKILL.md) | Agent workflow, connected-design rules, quality checklist |
 | [`copy-ideas.md`](copy-ideas.md) | Post-by-post copy structures, hooks, CTAs, Vietnamese guidance |
 | [`style-prompts/`](style-prompts) | Seven art-direction briefs |
-| [`scripts/scaffold.sh`](scripts/scaffold.sh) | Creates a new editor project from the template |
+| [`scripts/scaffold.mjs`](scripts/scaffold.mjs) | Creates a new editor project from the template (cross-platform) |
 | [`template/`](template) | The Next.js editor ([reference](template/README.md)) |
 
 **Requirements:** Node.js 20+ and pnpm (npm also works). `pnpm export` additionally needs a Chromium.

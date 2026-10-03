@@ -1,17 +1,19 @@
 ---
 name: threads-grid
 description: Scaffold a real visual editor (Next.js) for connected multi-post social grids — Threads / Instagram carousels, 2×2 / 3×3 puzzle grids, story sequences — where headlines, products, backgrounds and decorative lines flow across adjacent posts and are cropped per post on export. Use when the user wants a Threads grid, connected carousel, puzzle grid, product launch carousel, educational carousel, or "posts that connect", in English or Vietnamese.
+metadata:
+  version: "1.0.0"
 ---
 
 # threads-grid
 
 You build **one large canvas divided into post frames**, not N separate images. Elements may span seams; export crops the canvas into exact platform-sized PNGs. The deliverable is a working editor the user keeps using, preloaded with a strong first draft — never a one-off static HTML file.
 
-Skill files (paths relative to this SKILL.md):
+Skill files — paths are relative to **the directory containing this SKILL.md** (`<skill-dir>`). It differs per agent and install scope, e.g. `~/.claude/skills/threads-grid`, `.claude/skills/threads-grid`, `.agents/skills/threads-grid`; resolve it before running anything.
 
 | Path | Use |
 |---|---|
-| `scripts/scaffold.sh <dir>` | Copy the editor template and install deps |
+| `scripts/scaffold.mjs <dir>` | Copy the editor template and install deps (cross-platform Node script) |
 | `template/` | The Next.js editor (do not edit in place; scaffold a copy) |
 | `style-prompts/*.md` | Art direction per style. **Read the chosen one before drafting.** |
 | `copy-ideas.md` | Post-by-post copy structures, hook formulas, Vietnamese copy rules |
@@ -49,7 +51,7 @@ Needed: **brand/product**, **campaign message**, **number of posts**, **format**
 ### 2. Scaffold
 
 ```bash
-bash <skill-dir>/scripts/scaffold.sh ./<project-slug>-grid
+node <skill-dir>/scripts/scaffold.mjs ./<project-slug>-grid
 ```
 Default target: a new folder in the user's current working directory. Never scaffold into a non-empty directory. Requires Node 20+ and pnpm (falls back to npm).
 
